@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#070102">
+<title>Is Dil Ke Andar — Tum Hi Ho</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Marcellus&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#f6e8e4; --dim:#c9a3a0; --faint:#8f6a6a;
+  --rose:#ff5b6a; --rose-soft:#d8abaa; --line:rgba(255,110,120,.35);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+body{
+  background:#070102;color:var(--ink);
+  font-family:'Cormorant Garamond',serif;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;-webkit-user-select:none;
+}
+#scene{position:fixed;inset:0;display:block;touch-action:none;cursor:grab}
+#scene.drag{cursor:grabbing}
+
+/* cinematic grading */
+.vignette{position:fixed;inset:0;pointer-events:none;z-index:2;
+  background:radial-gradient(ellipse at 50% 44%, rgba(0,0,0,0) 38%, rgba(4,1,2,.55) 76%, rgba(3,0,1,.92) 100%)}
+.grain{position:fixed;inset:-12%;pointer-events:none;z-index:3;opacity:.05;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='0.6'/></svg>");
+  animation:grainShift .5s steps(4) infinite}
+@keyframes grainShift{0%{transform:translate(0,0)}25%{transform:translate(-2%,3%)}50%{transform:translate(3%,-2%)}75%{transform:translate(-3%,-3%)}100%{transform:translate(0,0)}}
+
+/* ---------- shared type ---------- */
+.eyebrow{font-family:'Marcellus',serif;font-size:10px;letter-spacing:.34em;text-transform:uppercase;color:#a06b68}
+.ghost{
+  font-family:'Marcellus',serif;font-size:11px;letter-spacing:.26em;text-transform:uppercase;
+  color:var(--rose-soft);background:rgba(18,2,4,.42);border:1px solid var(--line);
+  border-radius:999px;padding:13px 30px;cursor:pointer;
+  transition:color .35s,border-color .35s,box-shadow .35s,transform .35s;
+  display:inline-flex;align-items:center;gap:9px;justify-content:center}
+.ghost:hover{color:#ffe9e6;border-color:rgba(255,110,120,.7);box-shadow:0 0 28px rgba(255,70,85,.22)}
+.ghost svg{width:12px;height:12px;fill:var(--rose);filter:drop-shadow(0 0 5px rgba(255,80,95,.7))}
+.ghost.big{padding:16px 46px;font-size:12px}
+
+/* ---------- tooltip / hint / progress ---------- */
+#tooltip{position:fixed;z-index:5;pointer-events:none;opacity:0;transition:opacity .25s;
+  transform:translate(-50%,-150%);white-space:nowrap;
+  font-style:italic;font-size:15px;color:#ffd9d4;background:rgba(12,1,3,.55);
+  border:1px solid rgba(255,120,130,.25);border-radius:999px;padding:6px 15px}
+#tooltip.on{opacity:1}
+#hint{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);z-index:6;pointer-events:none;
+  text-align:center;font-style:italic;font-size:16px;line-height:1.55;color:#b98f8d;
+  opacity:0;transition:opacity 1.2s;padding:0 24px}
+#hint.on{opacity:1}
+#progress{position:fixed;left:28px;bottom:28px;z-index:6;pointer-events:none;
+  font-family:'Marcellus',serif;font-size:10px;letter-spacing:.26em;text-transform:uppercase;
+  color:var(--faint);opacity:0;transition:opacity 1s}
+#progress.on{opacity:1}
+
+/* ---------- final secret button ---------- */
+#finalBtn{position:fixed;left:50%;bottom:34px;transform:translate(-50%,18px);z-index:7;
+  opacity:0;pointer-events:none;transition:opacity 1.2s,transform 1.2s;
+  background:rgba(40,4,8,.55);border-color:rgba(255,90,100,.5)}
+#finalBtn.on{opacity:1;transform:translate(-50%,0);pointer-events:auto;animation:pulseGlow 2.6s ease-in-out infinite}
+@keyframes pulseGlow{0%,100%{box-shadow:0 0 16px rgba(255,70,85,.12)}50%{box-shadow:0 0 38px rgba(255,70,85,.34)}}
+
+/* ---------- mute ---------- */
+#muteBtn{position:fixed;top:20px;right:20px;z-index:8;width:42px;height:42px;border-radius:50%;
+  background:rgba(14,2,3,.4);border:1px solid rgba(255,110,120,.22);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:border-color .3s}
+#muteBtn:hover{border-color:rgba(255,110,120,.6)}
+#muteBtn svg{width:18px;height:18px;stroke:#a97d7c;fill:#a97d7c;stroke-width:1.6;stroke-linecap:round}
+#muteBtn .slash{opacity:0;transition:opacity .2s}
+#muteBtn.muted .waves{opacity:0}
+#muteBtn.muted .slash{opacity:1}
+
+/* ---------- hotspot message ---------- */
+#msgLayer{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .8s}
+#msgLayer.on{opacity:1}
+#msgLayer .scrim{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at center, rgba(8,1,2,.30) 0%, rgba(5,0,1,.88) 74%)}
+#msgLayer.on .scrim{pointer-events:auto}
+.msg{position:relative;max-width:660px;padding:0 30px;text-align:center;pointer-events:none}
+.msg>*{opacity:0}
+#msgLayer.on .msg>*{animation:rise 1s cubic-bezier(.16,.6,.2,1) forwards}
+#msgLayer.on .msg>*:nth-child(1){animation-delay:.15s}
+#msgLayer.on .msg>*:nth-child(2){animation-delay:.45s}
+#msgLayer.on .msg>*:nth-child(3){animation-delay:.7s}
+#msgLayer.on .msg>*:nth-child(4){animation-delay:.95s}
+#msgLayer.on .msg>*:nth-child(5){animation-delay:1.7s}
+#msgLayer.on .msg>*:nth-child(6){animation-delay:2.5s}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.msg .title{font-weight:600;font-size:clamp(28px,7vw,42px);line-height:1.1;margin:14px 0 0;color:#ffe4de;
+  text-shadow:0 0 34px rgba(255,80,95,.28)}
+.msg .rule{display:flex;align-items:center;justify-content:center;gap:11px;margin:20px 0}
+.msg .rule span{width:54px;height:1px;background:rgba(220,140,140,.4)}
+.msg .rule i{width:5px;height:5px;transform:rotate(45deg);background:#c96a6e}
+.msg .body{font-style:italic;font-size:clamp(17px,2.4vw + 8px,22px);line-height:1.8;color:#f0dcd7;
+  text-shadow:0 1px 22px rgba(0,0,0,.8);user-select:text;-webkit-user-select:text}
+.msg .refrain{margin-top:20px;font-style:italic;font-size:15px;letter-spacing:.14em;color:#a97976}
+.msg .ghost{margin-top:30px;pointer-events:none}
+#msgLayer.on .msg .ghost{pointer-events:auto}
+
+/* ---------- finale ---------- */
+#finaleLayer{position:fixed;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;visibility:hidden;transition:opacity 1.4s,visibility 0s 1.4s}
+#finaleLayer.on{opacity:1;pointer-events:auto;visibility:visible;transition:opacity 1.4s}
+#finaleLayer .scrim{position:absolute;inset:0;background:rgba(6,0,1,.74)}
+.finale{position:relative;max-width:700px;padding:0 30px;text-align:center}
+.finale .line{opacity:0;font-style:italic;font-size:clamp(17px,2.2vw + 8px,21px);line-height:1.85;color:#ecccc6;
+  text-shadow:0 1px 22px rgba(0,0,0,.85)}
+.finale .big{font-style:italic;font-weight:600;font-size:clamp(26px,6vw,40px);line-height:1.25;color:#ffd9d2;
+  text-shadow:0 0 34px rgba(255,80,95,.4);margin:10px 0}
+.finale .rule{display:flex;align-items:center;justify-content:center;gap:11px;margin:24px 0}
+.finale .rule span{width:54px;height:1px;background:rgba(220,140,140,.4)}
+.finale .rule i{width:5px;height:5px;transform:rotate(45deg);background:#c96a6e}
+.finale .last svg{width:15px;height:15px;fill:var(--rose);vertical-align:-2px;
+  filter:drop-shadow(0 0 6px rgba(255,80,95,.8))}
+.finale .eyebrow{opacity:0}
+.finale .ghost{margin-top:30px;opacity:0}
+#finaleLayer.on .eyebrow{animation:rise 1.2s ease forwards .3s}
+#finaleLayer.on .l1{animation:rise 1.2s ease forwards 1.1s}
+#finaleLayer.on .l2{animation:rise 1.2s ease forwards 2s}
+#finaleLayer.on .l3{animation:rise 1.4s ease forwards 3s}
+#finaleLayer.on .l4{animation:rise 1.2s ease forwards 4s}
+#finaleLayer.on .l5{animation:rise 1.2s ease forwards 4.8s}
+#finaleLayer.on .l6{animation:rise 1.2s ease forwards 5.6s}
+#finaleLayer.on .l7{animation:rise 1.4s ease forwards 6.4s}
+#finaleLayer.on .rule{animation:rise 1.2s ease forwards 7.4s}
+#finaleLayer.on .l8{animation:rise 1.4s ease forwards 8.2s}
+#finaleLayer.on .ghost{animation:rise 1.2s ease forwards 9.6s;pointer-events:auto}
+
+/* ---------- intro ---------- */
+#intro{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+  background:#070102;transition:background 1.6s,opacity 1.4s}
+#intro.ready{background:rgba(7,1,2,.68)}
+#intro.leave{opacity:0;pointer-events:none}
+#loader{display:flex;flex-direction:column;align-items:center;transition:opacity .8s}
+#loader.done{opacity:0;pointer-events:none;position:absolute}
+.beat-heart{width:58px;height:58px;fill:#9e1424;filter:drop-shadow(0 0 20px rgba(255,60,80,.5));
+  animation:beat 1.05s ease-in-out infinite}
+@keyframes beat{0%{transform:scale(1)}10%{transform:scale(1.16)}20%{transform:scale(1)}30%{transform:scale(1.1)}45%,100%{transform:scale(1)}}
+.load-text{margin-top:22px;font-style:italic;font-size:15px;color:#9c7472}
+.loadbar{margin-top:16px;width:130px;height:1px;background:rgba(255,255,255,.08);overflow:hidden}
+.loadbar i{display:block;width:45%;height:100%;background:#a1444c;animation:slide 1.2s ease-in-out infinite}
+@keyframes slide{0%{transform:translateX(-110%)}100%{transform:translateX(320%)}}
+#titleCard{display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 28px;
+  opacity:0;pointer-events:none;transform:translateY(14px);transition:opacity 1.6s ease,transform 1.6s ease}
+#titleCard.show{opacity:1;pointer-events:auto;transform:none}
+#titleCard h1{font-weight:500;font-size:clamp(46px,9.5vw,86px);line-height:1.04;margin:20px 0 0;color:#f7e6e1;
+  text-shadow:0 0 60px rgba(255,70,90,.22)}
+#titleCard h1 em{font-weight:600;color:#ff8d95}
+#titleCard .sub{margin-top:22px;font-style:italic;font-size:clamp(16px,2.2vw + 6px,19px);line-height:1.75;
+  color:#b48d8a;max-width:430px}
+#titleCard .ghost{margin-top:36px}
+
+@media (max-width:640px){
+  #progress{left:20px;bottom:20px;font-size:9px}
+  #hint{bottom:80px;font-size:14.5px}
+  #finalBtn{bottom:26px}
+  #msgLayer .msg,#finaleLayer .finale{padding:0 22px}
+}
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+<div class="vignette"></div>
+<div class="grain"></div>
+
+<div id="tooltip"></div>
+<div id="hint">Ghumao, chhoo kar dekho —<br>har roshni ke peechhe ek paighaam chhupa hai.</div>
+<div id="progress"></div>
+
+<button id="finalBtn" class="ghost">Dil ka aakhri raaz
+  <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+</button>
+
+<button id="muteBtn" aria-label="sound on / off">
+  <svg viewBox="0 0 24 24">
+    <path d="M3 9v6h4l5 4V5L7 9H3z" stroke="none"/>
+    <path class="waves" d="M16 8.5a4.5 4.5 0 010 7M18.5 6a8 8 0 010 12" fill="none"/>
+    <path class="slash" d="M4 4l16 16" fill="none"/>
+  </svg>
+</button>
+
+<div id="msgLayer">
+  <div class="scrim"></div>
+  <div class="msg">
+    <div class="eyebrow" id="msgEyebrow"></div>
+    <h2 class="title" id="msgTitle"></h2>
+    <div class="rule"><span></span><i></i><span></span></div>
+    <p class="body" id="msgBody"></p>
+    <p class="refrain">— tum hi ho is dil mein —</p>
+    <button class="ghost" id="returnBtn">Wapas poore dil par</button>
+  </div>
+</div>
+
+<div id="finaleLayer">
+  <div class="scrim"></div>
+  <div class="finale">
+    <div class="eyebrow">dil ka aakhri raaz</div>
+    <p class="line l1">Ab tum ne mere dil ke har kone ko dekh liya hai…</p>
+    <p class="line l2">aur har kone ne tumhein ek hi baat kahi hai —</p>
+    <p class="line big l3">Tum hi ho is dil mein.</p>
+    <p class="line l4">Tum hi ho meri dhadkan mein.</p>
+    <p class="line l5">Tum hi ho meri mohabbat mein.</p>
+    <p class="line l6">Aur shayad…</p>
+    <p class="line big l7">tum hi ho meri har dua mein.</p>
+    <div class="rule"><span></span><i></i><span></span></div>
+    <p class="line last l8">Ye dil tumhara tha, tumhara hai…<br>aur tumhara hi rahega.
+      <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+    </p>
+    <button class="ghost" id="replayBtn">Phir se dil dekhna hai?</button>
+  </div>
+</div>
+
+<div id="intro">
+  <div id="loader">
+    <svg class="beat-heart" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+    <div class="load-text">meri dhadkan taiyaar ho rahi hai…</div>
+    <div class="loadbar"><i></i></div>
+  </div>
+  <div id="titleCard">
+    <div class="eyebrow">ek chhupa hua khat · sirf tumhare liye</div>
+    <h1>Is Dil <em>Ke Andar</em></h1>
+    <p class="sub">Ye sirf ek dil nahi…<br>iske har kone mein tumhare naam ki ek roshni chhupi hai.</p>
+    <button class="ghost big" id="enterBtn">Dil kholo</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   helpers
+============================================================ */
+const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
+const lerp=THREE.MathUtils.lerp, clamp=THREE.MathUtils.clamp;
+const easeIO=t=>t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const TMP1=V3(),TMP2=V3(),TMP3=V3(),TMP4=V3();
+
+const tweens=[];
+function tween(dur,onUpdate,onDone){tweens.push({t:0,dur,onUpdate,onDone});}
+function stepTweens(dt){
+  for(let i=tweens.length-1;i>=0;i--){
+    const tw=tweens[i]; tw.t+=dt;
+    const k=Math.min(tw.t/tw.dur,1);
+    tw.onUpdate(easeIO(k));
+    if(k>=1){tweens.splice(i,1); tw.onDone&&tw.onDone();}
+  }
+}
+
+/* layered trig noise — gives the tissue its organic lumpiness */
+function sn(x,y,z){return (Math.sin(x*1.7+Math.sin(y*2.3))+Math.sin(y*1.9+Math.sin(z*2.7))+Math.sin(z*2.1+Math.sin(x*1.4)))/3;}
+function nz(x,y,z){return sn(x+11.3,y+7.7,z+3.1)*0.65+sn(x*2.7+4.2,y*2.3+9.1,z*3.1+1.7)*0.35;}
+function randomUnit(out){
+  const u=Math.random()*2-1,a=Math.random()*Math.PI*2,s=Math.sqrt(1-u*u);
+  return out.set(s*Math.cos(a),u,s*Math.sin(a));
+}
+
+/* ============================================================
+   renderer / scene / camera
+============================================================ */
+const canvas=document.getElementById('scene');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x070102);
+scene.fog=new THREE.FogExp2(0x070102,0.05);
+
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,0.1,100);
+const LOOK0=V3(0,0.45,0);
+const lookCur=LOOK0.clone();
+
+const defaultDist=a=>Math.max(5.4,4.35/a);
+let camDist=defaultDist(innerWidth/innerHeight)*1.7;   // starts far → cinematic dolly-in
+let camDistT=defaultDist(innerWidth/innerHeight);
+let userZoomed=false;
+
+/* ============================================================
+   heart groups: pose tilt → user spin → beat pulse
+============================================================ */
+const heartPose=new THREE.Group(); heartPose.rotation.set(0.10,0,-0.26); scene.add(heartPose);
+const heartSpin=new THREE.Group(); heartPose.add(heartSpin);
+const beatGroup=new THREE.Group(); heartSpin.add(beatGroup);
+
+let rotY=-0.7, rotX=0.06, rotYv=0, rotXv=0;
+
+/* ============================================================
+   anatomy — sculpted from displaced spheres & tubes
+============================================================ */
+/* the main ventricle mass: unit sphere → tapered, elongated, apex-bent, noise-displaced */
+function ventriclePoint(d,out){
+  out=out||V3();
+  const dx=d.x,dy=d.y,dz=d.z;
+  const t=(1-dy)*0.5, taper=1-0.5*t*t;
+  out.set(dx*taper, dy*1.32, dz*taper);
+  const b=Math.pow(Math.max(0,-dy),2.0);
+  out.x-=b*0.5; out.z-=b*0.10;
+  const n=nz(dx*2.4+5.2,dy*2.6+8.9,dz*2.9+3.3);
+  out.x+=dx*n*0.075; out.y+=dy*n*0.075; out.z+=dz*n*0.075;
+  return out.multiplyScalar(1.08);
+}
+function makeVentricle(){
+  const g=new THREE.SphereGeometry(1,120,90);
+  const pos=g.attributes.position,v=V3();
+  for(let i=0;i<pos.count;i++){v.fromBufferAttribute(pos,i).normalize();ventriclePoint(v,v);pos.setXYZ(i,v.x,v.y,v.z);}
+  g.computeVertexNormals(); return g;
+}
+function blob(radius,center,scaleV,seed){
+  const g=new THREE.SphereGeometry(1,64,48);
+  const pos=g.attributes.position,v=V3();
+  for(let i=0;i<pos.count;i++){
+    v.fromBufferAttribute(pos,i).normalize();
+    const n=nz(v.x*2.6+seed,v.y*2.9+seed*1.7,v.z*2.2+seed*2.3);
+    v.multiplyScalar(radius*(1+n*0.09)).multiply(scaleV).add(center);
+    pos.setXYZ(i,v.x,v.y,v.z);
+  }
+  g.computeVertexNormals(); return g;
+}
+function tube(pts,r){
+  const curve=new THREE.CatmullRomCurve3(pts.map(p=>V3(p[0],p[1],p[2])));
+  return new THREE.TubeGeometry(curve,Math.max(24,pts.length*10),r,12,false);
+}
+/* mottled crimson vertex colours — depth without textures */
+const cA=new THREE.Color(0x3f060d), cB=new THREE.Color(0x8e1c27), cTmp=new THREE.Color();
+function paint(g,seed){
+  const pos=g.attributes.position,n=pos.count,col=new Float32Array(n*3),v=V3();
+  for(let i=0;i<n;i++){
+    v.fromBufferAttribute(pos,i);
+    const m=clamp(0.5+0.5*nz(v.x*3.1+seed,v.y*2.7+seed*2.1,v.z*3.4+seed*0.7),0,1);
+    cTmp.copy(cA).lerp(cB,0.25+0.75*m);
+    col[i*3]=cTmp.r; col[i*3+1]=cTmp.g; col[i*3+2]=cTmp.b;
+  }
+  g.setAttribute('color',new THREE.BufferAttribute(col,3)); return g;
+}
+
+/* --- living-tissue shader: key/fill/rim/subsurface + heartbeat --- */
+const tissueU={
+  uPulse:{value:0}, uFinal:{value:0},
+  uKeyPos:{value:V3(3.5,3.5,4.5)},
+  uFillPos:{value:V3(-4.5,1.5,2.5)},
+  uBackPos:{value:V3(0.5,1.0,-5.5)}
+};
+const tissueMat=new THREE.ShaderMaterial({
+  uniforms:tissueU,
+  vertexShader:`
+    attribute vec3 color;
+    varying vec3 vN; varying vec3 vW; varying vec3 vC;
+    void main(){
+      vC=color;
+      vN=normalize(mat3(modelMatrix)*normal);
+      vec4 w=modelMatrix*vec4(position,1.0);
+      vW=w.xyz;
+      gl_Position=projectionMatrix*viewMatrix*w;
+    }`,
+  fragmentShader:`
+    uniform float uPulse,uFinal;
+    uniform vec3 uKeyPos,uFillPos,uBackPos;
+    varying vec3 vN; varying vec3 vW; varying vec3 vC;
+    void main(){
+      vec3 N=normalize(vN);
+      vec3 V=normalize(cameraPosition-vW);
+      vec3 Lk=normalize(uKeyPos-vW);
+      vec3 Lf=normalize(uFillPos-vW);
+      vec3 Lb=normalize(uBackPos-vW);
+      float dk=max(dot(N,Lk),0.0);
+      float df=max(dot(N,Lf),0.0);
+      float db=max(dot(N,Lb),0.0);
+      float fres=pow(1.0-max(dot(N,V),0.0),2.6);
+      vec3 col=vC*(0.16
+        + dk*vec3(1.25,0.72,0.62)
+        + df*vec3(0.55,0.28,0.34)
+        + pow(db,1.5)*vec3(0.45,0.12,0.16));
+      /* light bleeding through thin flesh */
+      float sss=pow(max(dot(V,-Lk),0.0),2.2);
+      col+=vec3(0.45,0.05,0.07)*sss*(0.5+0.5*uPulse);
+      /* rose rim + systolic glow */
+      col+=vec3(1.0,0.22,0.28)*fres*(0.30+0.45*uPulse);
+      col+=vC*vec3(1.1,0.25,0.3)*uPulse*0.30;
+      /* the finale: the whole heart turns into warm light */
+      vec3 hot=vec3(1.5,0.5,0.42)*(0.8+0.6*uPulse)+vec3(1.0,0.7,0.6)*fres;
+      col=mix(col,hot,uFinal);
+      gl_FragColor=vec4(col,1.0);
+    }`
+});
+const corU={uPulse:{value:0},uFinal:{value:0}};
+const corMat=new THREE.ShaderMaterial({
+  uniforms:corU,
+  vertexShader:`void main(){gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+  fragmentShader:`
+    uniform float uPulse,uFinal;
+    void main(){
+      vec3 col=vec3(0.30,0.02,0.05);
+      col+=vec3(1.25,0.22,0.28)*uPulse*0.85;
+      col=mix(col,vec3(1.7,0.8,0.65),uFinal);
+      gl_FragColor=vec4(col,1.0);
+    }`
+});
+
+function addTissue(geo){
+  paint(geo,Math.random()*40);
+  const m=new THREE.Mesh(geo,tissueMat);
+  beatGroup.add(m); return m;
+}
+
+/* ventricles + atria */
+addTissue(makeVentricle());
+addTissue(blob(0.62,V3(0.55,0.15,0.35),V3(1,0.95,0.9),7.7));   // right ventricle
+addTissue(blob(0.50,V3(0.72,0.78,-0.15),V3(1,0.85,0.92),3.3)); // right atrium
+addTissue(blob(0.46,V3(-0.62,0.85,-0.30),V3(0.95,0.85,0.95),9.1)); // left atrium
+/* aorta + arch branches */
+addTissue(tube([[0.15,0.70,-0.05],[0.10,1.25,0.05],[0.05,1.62,0.10],[-0.55,1.60,0.00],[-0.82,1.22,-0.15],[-0.85,0.70,-0.25]],0.165));
+addTissue(tube([[0.02,1.58,0.08],[0.02,1.96,0.12]],0.055));
+addTissue(tube([[-0.28,1.60,0.04],[-0.36,1.96,0.06]],0.05));
+addTissue(tube([[-0.55,1.55,-0.02],[-0.66,1.88,0.00]],0.048));
+/* pulmonary artery, venae cavae, pulmonary veins */
+addTissue(tube([[0.48,0.60,0.32],[0.36,1.10,0.42],[0.10,1.45,0.35],[-0.25,1.55,0.28],[-0.52,1.50,0.20]],0.145));
+addTissue(tube([[0.78,0.90,-0.20],[0.86,1.50,-0.30]],0.125));
+addTissue(tube([[0.70,0.50,-0.32],[0.80,-0.10,-0.45]],0.115));
+addTissue(tube([[-0.72,0.95,-0.35],[-1.12,1.05,-0.48]],0.07));
+addTissue(tube([[-0.70,0.70,-0.40],[-1.08,0.70,-0.52]],0.065));
+
+/* glowing coronaries that hug the sculpted surface */
+function coronary(dirs,r){
+  const pts=dirs.map((d,i)=>{
+    const dir=V3(d[0],d[1],d[2]).normalize();
+    const p=ventriclePoint(dir);
+    p.addScaledVector(dir,(i===0||i===dirs.length-1)?-0.015:0.05);
+    return p;
+  });
+  const m=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),80,r,8,false),corMat);
+  beatGroup.add(m);
+}
+coronary([[0.30,0.80,0.52],[0.18,0.45,0.88],[0.06,0.10,0.99],[-0.02,-0.35,0.94],[-0.10,-0.78,0.62]],0.034);
+coronary([[0.18,0.45,0.88],[0.45,0.35,0.83],[0.66,0.12,0.74],[0.80,-0.18,0.57]],0.026);
+coronary([[0.30,0.80,0.52],[0.02,0.86,0.50],[-0.32,0.78,0.55],[-0.55,0.60,0.58]],0.026);
+
+/* soft volumetric back-glows */
+function makeGlowTexture(){
+  const c=document.createElement('canvas'); c.width=c.height=128;
+  const x=c.getContext('2d');
+  const g=x.createRadialGradient(64,64,0,64,64,64);
+  g.addColorStop(0,'rgba(255,255,255,1)');
+  g.addColorStop(0.28,'rgba(255,150,158,0.55)');
+  g.addColorStop(1,'rgba(255,120,130,0)');
+  x.fillStyle=g; x.fillRect(0,0,128,128);
+  return new THREE.CanvasTexture(c);
+}
+const glowTex=makeGlowTexture();
+const backGlows=[];
+[[0x8a1020,11,0.32,-2.5,1.2,-6],[0x54081a,13,0.28,3,-0.5,-7]].forEach(a=>{
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:a[0],transparent:true,opacity:a[2],blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
+  s.scale.setScalar(a[1]); s.position.set(a[3],a[4],a[5]);
+  s.userData.base=a[2]; scene.add(s); backGlows.push(s);
+});
+
+/* ============================================================
+   hotspots — attached to the anatomy, blinking, tappable
+============================================================ */
+const HOTSPOTS=[
+ {title:'Mera Markaz',       text:'Is dil ke har kone mein agar kisi ka naam likha hai, to woh sirf tumhara hai. Meri dhadkanon ka har raaz tum se juda hai.'},
+ {title:'Pehli Mulaqat',     text:'Log kehte hain dil mein bohat si jagah hoti hai… mera dil shayad is baat ko maanta hi nahi, kyun ke is mein sirf tum ho.'},
+ {title:'Dhadkan Ka Safar',  text:'Jab meri dhadkan chalti hai, mujhe tum yaad aati ho. Shayad isi liye mera dil itni mohabbat se dhadakta hai.'},
+ {title:'Sab Se Gehra Kona', text:'Main ne apne dil ko bohat gaur se dekha hai… har taraf tum hi tum nazar aati ho. Tum meri mohabbat nahi, meri dhadkan ho.'},
+ {title:'Shak Ka Jawab',     text:'Agar kabhi tumhein shak ho ke mere dil mein tumhari jagah kya hai, to is dil ke kisi bhi kone par click kar lena… jawab har jagah ek hi milega: tum hi ho.'},
+ {title:'Sirf Ek Raasta',    text:'Mere dil ka koi doosra raasta nahi, koi doosra naam nahi. Is dil ki manzil bhi tum ho aur is dil ki wajah bhi tum.'},
+ {title:'Meri Aankhon Se',   text:'Kaash tum meri aankhon se khud ko dekh sakti, to samajh paati ke meri duniya mein tum kitni khoobsurat jagah rakhti ho.'},
+ {title:'Ehsaas Ka Naqsha',  text:'Ye sirf ek 3D heart nahi… ye mere ehsaas ka naqsha hai. Is ke har hisse mein meri mohabbat chhupi hai, aur meri mohabbat ka naam tum ho.'}
+];
+/* anatomical anchor points */
+(function place(){
+  const d1=V3(-0.10,-0.18,1).normalize();
+  HOTSPOTS[0].pos=ventriclePoint(d1).addScaledVector(d1,0.07);
+  HOTSPOTS[1].pos=V3(0.72,0.78,-0.15).addScaledVector(V3(0.85,0.45,0.28).normalize(),0.55);
+  HOTSPOTS[2].pos=V3(-0.26,1.76,0.10);
+  const d4=V3(-0.72,-0.92,0.30).normalize();
+  HOTSPOTS[3].pos=ventriclePoint(d4).addScaledVector(d4,0.06);
+  HOTSPOTS[4].pos=V3(0.98,1.22,-0.10);
+  HOTSPOTS[5].pos=V3(0.36,1.12,0.60);
+  HOTSPOTS[6].pos=V3(-0.62,0.85,-0.30).addScaledVector(V3(-0.85,0.35,0.42).normalize(),0.50);
+  HOTSPOTS[7].pos=V3(0.55,0.15,0.35).addScaledVector(V3(0.30,-0.35,0.90).normalize(),0.66);
+})();
+HOTSPOTS.forEach((h,i)=>{
+  const g=new THREE.Group(); g.position.copy(h.pos); beatGroup.add(g);
+  const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xff7784,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,fog:false}));
+  sprite.scale.setScalar(0.55); g.add(sprite);
+  const core=new THREE.Mesh(new THREE.SphereGeometry(0.028,12,12),
+    new THREE.MeshBasicMaterial({color:0xffe6dd,transparent:true,opacity:0,depthWrite:false,depthTest:false,fog:false}));
+  g.add(core);
+  Object.assign(h,{group:g,sprite,core,phase:i*1.73,curOp:0,curScale:1,surge:0,fade:0,idx:i+1});
+});
+
+/* ============================================================
+   particles — drifting dust + ember bursts
+============================================================ */
+function pointsMaterial(fs,extra){
+  return new THREE.ShaderMaterial(Object.assign({
+    transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+    vertexShader:`
+      attribute float aAlpha; attribute float aSize; attribute float aSeed;
+      varying float vA; uniform float uTime; uniform float uH;
+      void main(){
+        vec3 p=position; float s=aSeed;`,
+    fragmentShader:fs
+  },extra));
+}
+/* dust */
+const DUST_N=240;
+const dustGeo=new THREE.BufferGeometry();
+{
+  const p=new Float32Array(DUST_N*3),s=new Float32Array(DUST_N);
+  for(let i=0;i<DUST_N;i++){
+    randomUnit(TMP1).multiplyScalar(3.5+Math.random()*7);
+    p[i*3]=TMP1.x; p[i*3+1]=TMP1.y; p[i*3+2]=TMP1.z; s[i]=Math.random();
+  }
+  dustGeo.setAttribute('position',new THREE.BufferAttribute(p,3));
+  dustGeo.setAttribute('aSeed',new THREE.BufferAttribute(s,1));
+  dustGeo.setAttribute('aAlpha',new THREE.BufferAttribute(new Float32Array(DUST_N).fill(1),1));
+  dustGeo.setAttribute('aSize',new THREE.BufferAttribute(new Float32Array(DUST_N).fill(1),1));
+}
+const dustU={uTime:{value:0},uH:{value:innerHeight}};
+const dust=new THREE.Points(dustGeo,new THREE.ShaderMaterial({
+  uniforms:dustU,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+  vertexShader:`
+    attribute float aSeed; varying float vA; uniform float uTime; uniform float uH;
+    void main(){
+      float s=aSeed; vec3 p=position;
+      p.x+=sin(uTime*0.08+s*40.0)*0.7;
+      p.z+=cos(uTime*0.06+s*70.0)*0.7;
+      p.y=mod(p.y+uTime*(0.05+s*0.07)+s*20.0,12.0)-4.0;
+      vec4 mv=modelViewMatrix*vec4(p,1.0);
+      gl_PointSize=(1.5+s*2.5)*uH*0.0016/(-mv.z);
+      vA=0.35+0.65*(0.5+0.5*sin(uTime*(0.5+s*1.5)+s*90.0));
+      gl_Position=projectionMatrix*mv;
+    }`,
+  fragmentShader:`
+    varying float vA;
+    void main(){
+      float d=length(gl_PointCoord-0.5)*2.0;
+      float a=smoothstep(1.0,0.15,d)*vA*0.35;
+      gl_FragColor=vec4(vec3(1.0,0.62,0.55),a);
+    }`
+}));
+dust.frustumCulled=false; scene.add(dust);
+
+/* embers (burst pool) */
+const EMBER_N=320;
+const ePos=new Float32Array(EMBER_N*3), eAlp=new Float32Array(EMBER_N), eSz=new Float32Array(EMBER_N);
+const parts=[]; for(let i=0;i<EMBER_N;i++)parts.push({pos:V3(),vel:V3(),life:0,max:1,size:1,alpha:0});
+let emberIdx=0;
+const emberGeo=new THREE.BufferGeometry();
+emberGeo.setAttribute('position',new THREE.BufferAttribute(ePos,3));
+emberGeo.setAttribute('aAlpha',new THREE.BufferAttribute(eAlp,1));
+emberGeo.setAttribute('aSize',new THREE.BufferAttribute(eSz,1));
+emberGeo.setAttribute('aSeed',new THREE.BufferAttribute(new Float32Array(EMBER_N),1));
+const emberU={uTime:{value:0},uH:{value:innerHeight}};
+const embers=new THREE.Points(emberGeo,new THREE.ShaderMaterial({
+  uniforms:emberU,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+  vertexShader:`
+    attribute float aAlpha; attribute float aSize; varying float vA; uniform float uH;
+    void main(){
+      vA=aAlpha;
+      vec4 mv=modelViewMatrix*vec4(position,1.0);
+      gl_PointSize=aSize*uH*0.0011/(-mv.z);
+      gl_Position=projectionMatrix*mv;
+    }`,
+  fragmentShader:`
+    varying float vA;
+    void main(){
+      float d=length(gl_PointCoord-0.5)*2.0;
+      float a=smoothstep(1.0,0.1,d)*vA;
+      gl_FragColor=vec4(vec3(1.0,0.55,0.42),a);
+    }`
+}));
+embers.frustumCulled=false; scene.add(embers);
+function spawnEmber(p,vel,life,size){
+  const q=parts[emberIdx]; emberIdx=(emberIdx+1)%EMBER_N;
+  q.pos.copy(p); q.vel.copy(vel); q.life=q.max=life; q.size=size;
+}
+function spawnBurst(p,n){
+  for(let i=0;i<n;i++){
+    randomUnit(TMP1);
+    spawnEmber(p,V3(TMP1.x*0.45,0.25+Math.random()*0.5,TMP1.z*0.45),1.2+Math.random()*1.6,4+Math.random()*7);
+  }
+}
+function updateEmbers(dt){
+  for(let i=0;i<EMBER_N;i++){
+    const q=parts[i];
+    if(q.life>0){
+      q.life-=dt;
+      q.pos.addScaledVector(q.vel,dt);
+      q.vel.y+=0.22*dt; q.vel.multiplyScalar(1-0.5*dt);
+      const lf=Math.max(q.life/q.max,0);
+      q.alpha=lf*lf*(3-2*lf);
+    } else q.alpha=0;
+    ePos[i*3]=q.pos.x; ePos[i*3+1]=q.pos.y; ePos[i*3+2]=q.pos.z;
+    eAlp[i]=q.alpha; eSz[i]=q.size;
+  }
+  emberGeo.attributes.position.needsUpdate=true;
+  emberGeo.attributes.aAlpha.needsUpdate=true;
+  emberGeo.attributes.aSize.needsUpdate=true;
+}
+
+/* ============================================================
+   bloom
+============================================================ */
+let composer=null,bloomPass=null;
+try{
+  if(THREE.EffectComposer&&THREE.UnrealBloomPass){
+    composer=new THREE.EffectComposer(renderer);
+    composer.setPixelRatio(renderer.getPixelRatio());
+    composer.addPass(new THREE.RenderPass(scene,camera));
+    bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.85,0.8,0.22);
+    composer.addPass(bloomPass);
+  }
+}catch(e){composer=null;}
+
+/* ============================================================
+   generative audio — heartbeat + warm ambient pad (no files)
+============================================================ */
+let actx=null,master,heartBus,padBus,padLP,noiseBuf,shimmerG=null;
+let audioReady=false,muted=false,nextBeat=0,beatAnchor=0,chordIdx=0,nextChord=0;
+const CHORDS=[
+  [110,164.81,246.94,329.63],
+  [87.31,130.81,220,329.63],
+  [130.81,196,293.66,329.63],
+  [98,146.83,246.94,293.66]
+];
+let beatPeriod=1.05;
+function initAudio(){
+  if(audioReady)return;
+  try{
+    actx=new (window.AudioContext||window.webkitAudioContext)();
+    actx.resume&&actx.resume();
+    master=actx.createGain(); master.gain.value=muted?0:0.9;
+    const comp=actx.createDynamicsCompressor();
+    master.connect(comp); comp.connect(actx.destination);
+    heartBus=actx.createGain(); heartBus.gain.value=0.9;
+    const hlp=actx.createBiquadFilter(); hlp.type='lowpass'; hlp.frequency.value=320;
+    heartBus.connect(hlp); hlp.connect(master);
+    padBus=actx.createGain(); padBus.gain.value=0.5;
+    padLP=actx.createBiquadFilter(); padLP.type='lowpass'; padLP.frequency.value=900; padLP.Q.value=0.4;
+    const dly=actx.createDelay(2); dly.delayTime.value=0.55;
+    const fb=actx.createGain(); fb.gain.value=0.32;
+    const wet=actx.createGain(); wet.gain.value=0.3;
+    padBus.connect(padLP); padLP.connect(master);
+    padLP.connect(dly); dly.connect(fb); fb.connect(dly); dly.connect(wet); wet.connect(master);
+    noiseBuf=actx.createBuffer(1,actx.sampleRate,actx.sampleRate);
+    const d=noiseBuf.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    nextBeat=actx.currentTime+0.15; beatAnchor=nextBeat;
+    nextChord=actx.currentTime+0.3;
+    audioReady=true;
+  }catch(e){audioReady=false;}
+}
+function thump(t,s){
+  const o=actx.createOscillator(),g=actx.createGain();
+  o.type='sine';
+  o.frequency.setValueAtTime(lerp(64,48,finaleU),t);
+  o.frequency.exponentialRampToValueAtTime(30,t+0.14);
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(0.5*s,t+0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.3);
+  o.connect(g); g.connect(heartBus); o.start(t); o.stop(t+0.35);
+  const n=actx.createBufferSource(); n.buffer=noiseBuf;
+  const nf=actx.createBiquadFilter(); nf.type='lowpass'; nf.frequency.value=180;
+  const ng=actx.createGain();
+  ng.gain.setValueAtTime(0.12*s,t);
+  ng.gain.exponentialRampToValueAtTime(0.0001,t+0.12);
+  n.connect(nf); nf.connect(ng); ng.connect(heartBus);
+  n.start(t,Math.random()*0.5); n.stop(t+0.15);
+}
+function playChord(freqs,t){
+  freqs.forEach(f=>{
+    [-4,4].forEach(det=>{
+      const o=actx.createOscillator(); o.type='triangle'; o.frequency.value=f; o.detune.value=det;
+      const g=actx.createGain();
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(0.011,t+3.2);
+      g.gain.linearRampToValueAtTime(0,t+11.5);
+      o.connect(g); g.connect(padBus); o.start(t); o.stop(t+12);
+    });
+  });
+}
+function startShimmer(){
+  if(!audioReady)return;
+  shimmerG=actx.createGain(); shimmerG.gain.value=0; shimmerG.connect(padBus);
+  [523.25,659.25,784].forEach((f,i)=>{
+    const o=actx.createOscillator(); o.type='sine'; o.frequency.value=f;
+    const g=actx.createGain(); g.gain.value=0.004/(i*0.5+1);
+    const lfo=actx.createOscillator(); lfo.frequency.value=0.1+i*0.07;
+    const lg=actx.createGain(); lg.gain.value=0.003;
+    lfo.connect(lg); lg.connect(g.gain);
+    o.connect(g); g.connect(shimmerG); o.start(); lfo.start();
+  });
+  shimmerG.gain.setTargetAtTime(1,actx.currentTime,3);
+  padLP.frequency.setTargetAtTime(1600,actx.currentTime,3);
+}
+function stopShimmer(){
+  if(shimmerG)shimmerG.gain.setTargetAtTime(0,actx.currentTime,1.5);
+  if(padLP)padLP.frequency.setTargetAtTime(900,actx.currentTime,2);
+}
+function scheduleAudio(){
+  if(!audioReady)return;
+  const now=actx.currentTime;
+  if(nextBeat<now-0.4)nextBeat=now+0.05;
+  while(nextBeat<now+0.3){
+    thump(nextBeat,1+finaleU*0.6);
+    thump(nextBeat+beatPeriod*0.3,0.5+finaleU*0.35);
+    nextBeat+=beatPeriod;
+  }
+  if(nextChord<now-0.4)nextChord=now+0.1;
+  while(nextChord<now+1){
+    playChord(CHORDS[chordIdx%CHORDS.length],nextChord);
+    chordIdx++; nextChord+=9.5;
+  }
+}
+function beatCurve(p){
+  return Math.exp(-Math.pow((p-0.10)/0.05,2))+0.5*Math.exp(-Math.pow((p-0.34)/0.075,2));
+}
+
+/* ============================================================
+   UI refs & state
+============================================================ */
+const intro=document.getElementById('intro'),
+      loaderEl=document.getElementById('loader'),
+      titleCard=document.getElementById('titleCard'),
+      enterBtn=document.getElementById('enterBtn'),
+      hint=document.getElementById('hint'),
+      progress=document.getElementById('progress'),
+      finalBtn=document.getElementById('finalBtn'),
+      muteBtn=document.getElementById('muteBtn'),
+      msgLayer=document.getElementById('msgLayer'),
+      msgEyebrow=document.getElementById('msgEyebrow'),
+      msgTitle=document.getElementById('msgTitle'),
+      msgBody=document.getElementById('msgBody'),
+      returnBtn=document.getElementById('returnBtn'),
+      finaleLayer=document.getElementById('finaleLayer'),
+      replayBtn=document.getElementById('replayBtn'),
+      tooltip=document.getElementById('tooltip');
+
+let state='intro'; // intro | explore | focusing | reading | returning | finale
+let time=0, pulse=0, finaleU=0;
+const visited=new Set();
+let activeHS=null, hovered=null, finalShown=false, msgOpenedAt=0;
+const savedCam=V3(), savedLook=V3();
+const readingCam=V3(), readingLook=V3();
+const finaleCam=V3(), finaleLook=V3();
+
+function hintOff(){hint.classList.remove('on');}
+function updateProgress(){
+  const n=visited.size;
+  progress.textContent=n>=8?'poora dil roshan ho gaya'
+    :n===1?'pehla kona roshan ho gaya'
+    :n+' kone roshan ho gaye';
+  progress.classList.add('on');
+  if(n>=5&&!finalShown){
+    finalShown=true;
+    setTimeout(()=>finalBtn.classList.add('on'),900);
+  }
+}
+
+/* ============================================================
+   focus / message flow
+============================================================ */
+function openMessage(h){
+  msgEyebrow.textContent='DIL KA KONA · '+String(h.idx).padStart(2,'0')+' / 08';
+  msgTitle.textContent=h.title;
+  msgBody.textContent=h.text;
+  msgLayer.classList.remove('on'); void msgLayer.offsetWidth;
+  msgLayer.classList.add('on');
+  msgOpenedAt=performance.now();
+}
+function focusHotspot(h){
+  if(state!=='explore')return;
+  state='focusing'; activeHS=h; h.surge=1.6;
+  visited.add(h.idx); updateProgress(); hintOff();
+  setHover(null); rotYv=rotXv=0;
+  savedCam.copy(camera.position); savedLook.copy(lookCur);
+  const sc=camera.position.clone(), sl=lookCur.clone();
+  tween(1.9,k=>{
+    h.group.getWorldPosition(TMP1);
+    TMP2.copy(sc).sub(TMP1);
+    const L0=TMP2.length(); TMP2.normalize();
+    camera.position.copy(TMP1).addScaledVector(TMP2,lerp(L0,1.6,k));
+    lookCur.lerpVectors(sl,TMP1,k);
+    camera.lookAt(lookCur);
+  },()=>{
+    state='reading';
+    readingCam.copy(camera.position); readingLook.copy(lookCur);
+    openMessage(h);
+  });
+  setTimeout(()=>{
+    if(activeHS===h)spawnBurst(h.group.getWorldPosition(V3()),80);
+  },1300);
+}
+function returnToHeart(){
+  if(state!=='reading'||performance.now()-msgOpenedAt<1200)return;
+  state='returning'; msgLayer.classList.remove('on'); activeHS=null;
+  const sc=camera.position.clone(), sl=lookCur.clone();
+  tween(1.5,k=>{
+    camera.position.lerpVectors(sc,savedCam,k);
+    lookCur.lerpVectors(sl,savedLook,k);
+    camera.lookAt(lookCur);
+  },()=>{state='explore';});
+}
+returnBtn.addEventListener('click',returnToHeart);
+msgLayer.querySelector('.scrim').addEventListener('click',returnToHeart);
+
+/* ============================================================
+   finale
+============================================================ */
+finalBtn.addEventListener('click',()=>{
+  if(state!=='explore')return;
+  state='finale';
+  finalBtn.classList.remove('on'); progress.classList.remove('on'); hintOff();
+  const sc=camera.position.clone(), sl=lookCur.clone();
+  finaleCam.set(0,0.7,7.4); finaleLook.set(0,0.35,0);
+  tween(3.2,k=>{
+    camera.position.lerpVectors(sc,finaleCam,k);
+    lookCur.lerpVectors(sl,finaleLook,k);
+    camera.lookAt(lookCur);
+  });
+  tween(3.5,k=>{
+    finaleU=k;
+    tissueU.uFinal.value=k; corU.uFinal.value=k;
+    if(bloomPass)bloomPass.strength=0.85+k*1.0;
+  });
+  tween(4,k=>{beatPeriod=lerp(1.05,1.55,k);});
+  startShimmer();
+  setTimeout(()=>finaleLayer.classList.add('on'),3300);
+});
+replayBtn.addEventListener('click',()=>{
+  finaleLayer.classList.remove('on');
+  stopShimmer();
+  state='returning';
+  const sc=camera.position.clone(), sl=lookCur.clone();
+  const tc=V3(Math.sin(time*0.22)*0.05,0.45,camDistT);
+  tween(2.2,k=>{
+    camera.position.lerpVectors(sc,tc,k);
+    lookCur.lerpVectors(sl,LOOK0,k);
+    camera.lookAt(lookCur);
+  },()=>{state='explore';});
+  const from=finaleU;
+  tween(2.5,k=>{
+    finaleU=from*(1-k);
+    tissueU.uFinal.value=finaleU; corU.uFinal.value=finaleU;
+    if(bloomPass)bloomPass.strength=0.85+finaleU;
+  });
+  tween(3,k=>{beatPeriod=lerp(1.55,1.05,k);});
+  finalBtn.classList.add('on');
+});
+
+/* ============================================================
+   picking, hover, drag / swipe / pinch
+============================================================ */
+const raycaster=new THREE.Raycaster(), NDC=new THREE.Vector2();
+function pick(x,y){
+  NDC.set(x/innerWidth*2-1,-(y/innerHeight)*2+1);
+  raycaster.setFromCamera(NDC,camera);
+  let best=null,bd=1e9;
+  for(const h of HOTSPOTS){
+    if(h.fade<0.3)continue;
+    h.group.getWorldPosition(TMP1);
+    if(raycaster.ray.distanceToPoint(TMP1)<0.36){
+      const d=TMP1.distanceToSquared(camera.position);
+      if(d<bd){bd=d;best=h;}
+    }
+  }
+  return best;
+}
+function setHover(h){
+  hovered=h;
+  if(h){
+    tooltip.textContent=h.title;
+    tooltip.classList.add('on');
+    canvas.style.cursor='pointer';
+  }else{
+    tooltip.classList.remove('on');
+    canvas.style.cursor='';
+  }
+}
+function positionTooltip(){
+  hovered.group.getWorldPosition(TMP3); TMP3.project(camera);
+  tooltip.style.left=((TMP3.x*0.5+0.5)*innerWidth)+'px';
+  tooltip.style.top=((-TMP3.y*0.5+0.5)*innerHeight)+'px';
+}
+
+const activePtrs=new Map();
+let dragging=false,downX=0,downY=0,downT=0,moved=0,lastX=0,lastY=0,pinchD=0;
+canvas.addEventListener('pointerdown',e=>{
+  activePtrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(activePtrs.size===1){
+    dragging=true; downX=lastX=e.clientX; downY=lastY=e.clientY;
+    downT=performance.now(); moved=0; canvas.classList.add('drag');
+  }else if(activePtrs.size===2){
+    const a=[...activePtrs.values()];
+    pinchD=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
+  }
+  canvas.setPointerCapture&&canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove',e=>{
+  const p=activePtrs.get(e.pointerId);
+  if(p){p.x=e.clientX;p.y=e.clientY;}
+  if(activePtrs.size===2){
+    const a=[...activePtrs.values()];
+    const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
+    if(pinchD>0&&state==='explore'){camDistT=clamp(camDistT*(pinchD/d),3.2,10);userZoomed=true;}
+    pinchD=d; moved+=10;
+    return;
+  }
+  if(dragging&&(state==='explore'||state==='returning')){
+    const dx=e.clientX-lastX,dy=e.clientY-lastY;
+    lastX=e.clientX; lastY=e.clientY;
+    moved+=Math.abs(dx)+Math.abs(dy);
+    rotY+=dx*0.0042; rotX+=dy*0.0032;
+    rotYv=dx*0.0042*0.6; rotXv=dy*0.0032*0.6;
+  }else if(!dragging&&e.pointerType!=='touch'&&state==='explore'){
+    setHover(pick(e.clientX,e.clientY));
+  }
+});
+function endPtr(e){
+  activePtrs.delete(e.pointerId);
+  if(activePtrs.size<2)pinchD=0;
+  if(activePtrs.size===0){
+    canvas.classList.remove('drag'); dragging=false;
+    const wasTap=moved<8&&performance.now()-downT<450;
+    if(wasTap&&state==='explore'){
+      const h=pick(downX,downY);
+      if(h){setHover(null);focusHotspot(h);}
+    }
+  }
+}
+canvas.addEventListener('pointerup',endPtr);
+canvas.addEventListener('pointercancel',endPtr);
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+window.addEventListener('wheel',e=>{
+  if(state==='explore'){camDistT=clamp(camDistT+e.deltaY*0.004,3.2,10);userZoomed=true;}
+},{passive:true});
+
+/* ============================================================
+   intro / mute
+============================================================ */
+const ready=Promise.all([
+  document.fonts?document.fonts.ready:Promise.resolve(),
+  new Promise(r=>setTimeout(r,1600))
+]);
+ready.then(()=>{
+  loaderEl.classList.add('done');
+  titleCard.classList.add('show');
+  intro.classList.add('ready'); // heart faintly beats behind the title
+});
+enterBtn.addEventListener('click',()=>{
+  initAudio();
+  intro.classList.add('leave');
+  setTimeout(()=>intro.style.display='none',1500);
+  state='explore';
+  camDistT=defaultDist(innerWidth/innerHeight); // gentle dolly-in
+  setTimeout(()=>{if(visited.size===0)hint.classList.add('on');},1600);
+  setTimeout(hintOff,11000);
+});
+muteBtn.addEventListener('click',()=>{
+  if(!audioReady)initAudio();
+  muted=!muted;
+  muteBtn.classList.toggle('muted',muted);
+  if(master)master.gain.setTargetAtTime(muted?0:0.9,actx.currentTime,0.1);
+});
+
+/* ============================================================
+   per-frame updates
+============================================================ */
+function updateHotspots(dt){
+  beatGroup.getWorldPosition(TMP1);
+  TMP2.copy(camera.position).sub(TMP1).normalize();
+  for(const h of HOTSPOTS){
+    h.group.getWorldPosition(TMP3);
+    TMP4.copy(TMP3).sub(TMP1).normalize();
+    const f=TMP4.dot(TMP2);
+    h.fade=THREE.MathUtils.smoothstep(f,0.08,0.42);
+    let tOp=0,tSc=1;
+    if(state==='explore'){
+      const blink=0.55+0.45*Math.sin(time*2.2+h.phase*3);
+      tOp=h.fade*blink*(h===hovered?1:0.8);
+      tSc=(h===hovered?1.45:1)*(1+0.12*Math.sin(time*2.2+h.phase*3));
+    }else if(h===activeHS){
+      if(state==='focusing'){tOp=1;tSc=1+1.8*h.surge;}
+      else{tOp=0.12;tSc=0.4;}
+    }
+    h.surge=Math.max(0,h.surge-dt*0.7);
+    const k=Math.min(1,dt*5);
+    h.curOp+=(tOp-h.curOp)*k;
+    h.curScale+=(tSc-h.curScale)*k;
+    h.sprite.material.opacity=Math.min(1,h.curOp+h.surge*0.3);
+    h.sprite.scale.setScalar(0.55*Math.max(0.001,h.curScale));
+    h.core.material.opacity=Math.min(1,h.curOp*1.2);
+    h.core.scale.setScalar(Math.max(0.001,h.curScale*0.8+h.surge*0.6));
+  }
+}
+
+/* ============================================================
+   resize
+============================================================ */
+function onResize(){
+  const w=innerWidth,h=innerHeight,a=w/h;
+  camera.aspect=a; camera.updateProjectionMatrix();
+  renderer.setSize(w,h);
+  composer&&composer.setSize(w,h);
+  dustU.uH.value=h; emberU.uH.value=h;
+  if(!userZoomed)camDistT=defaultDist(a);
+}
+window.addEventListener('resize',onResize);
+onResize();
+
+/* ============================================================
+   main loop
+============================================================ */
+const clock=new THREE.Clock();
+function loop(){
+  requestAnimationFrame(loop);
+  const dt=Math.min(clock.getDelta(),0.05);
+  time+=dt;
+  stepTweens(dt);
+  scheduleAudio();
+
+  /* heartbeat phase, shared by visuals + audio clock */
+  let ph;
+  if(audioReady)ph=((actx.currentTime-beatAnchor)/beatPeriod)%1;
+  else ph=(time/beatPeriod)%1;
+  if(ph<0)ph+=1;
+  pulse=beatCurve(ph);
+
+  const s=1+0.05*pulse;
+  beatGroup.scale.setScalar(s);
+  beatGroup.position.y=Math.sin(time*0.5)*0.02;
+  tissueU.uPulse.value=pulse;
+  corU.uPulse.value=pulse;
+  backGlows.forEach(g=>g.material.opacity=g.userData.base*(1+pulse*0.3));
+
+  /* rotation: drag + inertia + slow drift */
+  if(state==='explore')rotY+=0.06*dt;
+  if(state==='returning')rotY+=0.024*dt;
+  rotY+=rotYv; rotX+=rotXv;
+  rotYv*=0.92; rotXv*=0.92;
+  rotX=clamp(rotX,-0.55,0.65);
+  heartSpin.rotation.set(rotX,rotY,0);
+
+  /* camera per state */
+  if(state==='explore'||state==='intro'){
+    camDist+=(camDistT-camDist)*Math.min(1,dt*3);
+    camera.position.set(Math.sin(time*0.22)*0.05,0.45+Math.sin(time*0.31)*0.04,camDist);
+    lookCur.lerp(LOOK0,Math.min(1,dt*2));
+    camera.lookAt(lookCur);
+  }else if(state==='reading'){
+    camera.position.set(readingCam.x+Math.sin(time*0.4)*0.02,readingCam.y+Math.sin(time*0.53)*0.02,readingCam.z);
+    camera.lookAt(readingLook);
+  }else if(state==='finale'&&finaleLayer.classList.contains('on')){
+    camera.position.set(finaleCam.x+Math.sin(time*0.15)*0.12,finaleCam.y+Math.sin(time*0.2)*0.06,finaleCam.z);
+    camera.lookAt(finaleLook);
+  }
+
+  updateHotspots(dt);
+  updateEmbers(dt);
+  dustU.uTime.value=time;
+  emberU.uTime.value=time;
+  if(hovered)positionTooltip();
+
+  /* ambient embers + the finale's rising sparks */
+  if(state==='finale'&&finaleU>0.2){
+    if(Math.random()<dt*22){
+      randomUnit(TMP4);
+      ventriclePoint(TMP4,TMP3);
+      beatGroup.localToWorld(TMP3);
+      spawnEmber(TMP3,V3((Math.random()-0.5)*0.2,0.35+Math.random()*0.4,(Math.random()-0.5)*0.2),2.5+Math.random()*2,5+Math.random()*8);
+    }
+  }else if(state==='explore'&&Math.random()<dt*1.1){
+    randomUnit(TMP4);
+    ventriclePoint(TMP4,TMP3);
+    beatGroup.localToWorld(TMP3);
+    spawnEmber(TMP3,V3(0,0.25+Math.random()*0.3,0),2+Math.random()*1.5,3+Math.random()*4);
+  }
+
+  composer?composer.render():renderer.render(scene,camera);
+}
+renderer.render(scene,camera); // warm-up frame
+loop();
+
+})();
+</script>
+</body>
+</html>
